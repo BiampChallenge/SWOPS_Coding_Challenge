@@ -1,0 +1,77 @@
+FROM debian:buster as base
+
+# Install required packages
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    bash \
+    locales \
+    locales-all \
+    screen \
+    ncurses-dev \
+    git-core \
+    diffstat \
+    unzip \
+    texinfo \
+    gcc-multilib \
+    build-essential \
+    chrpath \
+    socat \
+    cpio \
+    python3 \
+    python3-pip \
+    python3-pexpect \
+    xz-utils \
+    debianutils \
+    iputils-ping \
+    python3-git \
+    python3-jinja2 \
+    libegl1-mesa \
+    libsdl1.2-dev \
+    pylint3 \
+    xterm \
+    python3-wget \
+    nodejs \
+    lz4 \
+    zstd \
+    gawk \
+    wget \
+    rsync \
+    yapf \
+    vim \
+    jq \
+    sudo
+
+# Configure locale settings
+RUN DEBIAN_FRONTEND=noninteractive update-locale "LANG=en_US.UTF-8" && \
+    DEBIAN_FRONTEND=noninteractive locale-gen --purge "en_US.UTF-8" && \
+    DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales && \
+    ln -sf /bin/bash /bin/sh && \
+    echo 'base' > /etc/debian_chroot && \
+    groupadd yocto
+
+# Base development image
+FROM base as base-dev
+
+# Copy start.sh script and set as entrypoint
+COPY start.sh /opt
+ENTRYPOINT ["/opt/start.sh"]
+
+# Base Jenkins image
+FROM base as base-jenkins
+
+# Set user and group IDs for Jenkins user
+ARG userid
+ARG groupid
+
+# Create Jenkins user and directories
+RUN groupadd -g $groupid jenkins && \
+    useradd -m -d /home/jenkins -u $userid -g $groupid jenkins && \
+    mkdir -p /var/cache/yocto/download/ /var/cache/yocto/sstate/ /var/cache/yocto/global/sstate/ && \
+    chown -R jenkins:jenkins /var/cache/yocto
+
+# Set Jenkins user as default
+USER jenkins
+
+# Expose .ssh volume
+VOLUME /home/jenkins/.ssh
+
+# Tried reducing the number of RUN instructions so that it does not defeat the purpose of light weighted images.

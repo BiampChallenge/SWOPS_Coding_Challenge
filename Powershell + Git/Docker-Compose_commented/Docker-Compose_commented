@@ -1,0 +1,38 @@
+version: "3.7"
+services:
+  project-1-dev:
+    image: ${IMAGE_NAME}
+    network_mode: "host"
+    build:
+      # Specify the build context and Dockerfile to use
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    volumes:
+      # Bind mount the user's home directory into the container
+      - type: bind
+        source: ${HOME}
+        target: ${HOME}
+      # Bind mount the host's /etc directory into the container
+      - type: bind
+        source: /etc
+        target: /opt/host/etc
+        read_only: true
+      # Bind mount the host's /tmp/.X11-unix directory into the container
+      - type: bind
+        source: /tmp/.X11-unix
+        target: /tmp/.X11-unix
+      # Bind mount the host's /dev/log file into the container
+      - type: bind
+        source: /dev/log
+        target: /dev/log
+    environment:
+      # Set the DISPLAY, USER, WORKING_DIR, BITBUCKET_URL, and HOME environment variables
+      - DISPLAY
+      - USER
+      - WORKING_DIR=${PWD}
+      - BITBUCKET_URL
+      - HOME
+    
+    # Run the container in privileged mode
+    privileged: true

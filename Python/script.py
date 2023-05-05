@@ -10,7 +10,7 @@ language = sys.argv[1]
 
 # Authenticate with the GitHub API using a personal access token
 # Replace <ACCESS_TOKEN> with your actual token
-headers = {"Authorization": "Bearer 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 "}
+headers = {"Authorization": "Bearer <ACCESS_TOKEN"}
 
 # Fetch a list of repositories on GitHub that match the provided programming language and are sorted by the number of stars in descending order
 url = f"https://api.github.com/search/repositories?q=language:{language}&sort=stars&order=desc"
