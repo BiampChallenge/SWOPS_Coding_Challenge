@@ -2,4 +2,7 @@ I have not succeeded in running this script, it has been giving me alot of error
 been on it troubleshooting but still can't figure the issue. i will still be working on it though.
    Below is the explanation on what the script is intended to 
 
-This task requires writing a bash script named "disk_monitor.sh" that continuously monitors the disk space usage of multiple mounted file systems, specified in a configuration file along with their respective thresholds. If any file system exceeds its threshold, an email alert containing the hostname, file system name, percentage of disk space used, and threshold should be sent to the system administrator using the "mail" command. The script should log its actions to a file, run as a daemon process, and be able to stop with a specific signal. Additionally, it has bonus requirements of reloading the configuration file without stopping the daemon process and checking the disk space usage of remote systems using SSH.
+This task requires writing a bash script named "disk_monitor.sh" that continuously monitors the disk space usage of multiple mounted file systems, specified in a configuration file along with their respective thresholds. 
+If any file system exceeds its threshold, an email alert containing the hostname, file system name, percentage of disk space used, and threshold should be sent to the system administrator using the "mail" command. 
+The script should log its actions to a file, run as a daemon process, and be able to stop with a specific signal. 
+Additionally, it has bonus requirements of reloading the configuration file without stopping the daemon process and checking the disk space usage of remote systems using SSH.
