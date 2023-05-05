@@ -1,0 +1,49 @@
+#     Use double quotes around command substitutions: When assigning passwdline variable, it is better to use double quotes around the command substitution to allow the variable to expand with whitespace characters.
+    Use command substitution in place of echo and cut: Instead of using echo and cut commands to extract the UID and GID from the passwdline variable, command substitution can be used to execute a single command to extract the UID and GID.
+    Avoid unnecessary sudo commands: Some of the commands in the script, such as mkdir, chown, and ln commands, already run with sudo privileges and do not need to be prefixed with sudo.
+    Avoid using hardcoded values: Instead of using hardcoded values for directories and filenames, it is better to use variables that can be easily changed and reused.
+    Use parameter expansion: In some places where the same variable is used multiple times, it is better to use parameter expansion to avoid repeating the variable name.
+
+
+#!/bin/bash
+
+# Get the user's UID and GID
+passwdline=$(grep "^$USER:" /opt/host/etc/passwd)
+uid=${passwdline##*:}
+gid=${passwdline##*:}
+gid=${gid%%:*}
+
+# Create a group with the user's GID
+groupadd -g "${gid}" "${USER}"
+
+# Create a user with the user's UID and GID, and add it to the 'yocto' and 'sudo' groups
+useradd -u "${uid}" -g "${USER}" -G yocto,sudo -s /bin/bash --home-dir "${HOME}" "${USER}"
+
+# Create /dev/loop0 if it doesn't exist
+if [ ! -b /dev/loop0 ]; then
+  mknod /dev/loop0 b 7 0
+fi
+
+# Set the user's password
+echo "${USER}:${USER}" | chpasswd 
+
+# Create directories and set permissions
+mkdir -p "${HOME}/.yocto-cache/downloads"
+mkdir -p "${HOME}/.yocto-cache/sstate"
+chown "${USER}:${USER}" -R "${HOME}/.yocto-cache"
+ln -s "${HOME}/.yocto-cache/downloads" "/var/cache/yocto/downloads" 
+ln -s "${HOME}/.yocto-cache/sstate" "/var/cache/yocto/sstate" 
+
+# Change to the working directory
+cd "$WORKING_DIR"
+
+# Set the BASH_RC_FILE variable to the user's .bashrc file
+BASH_RC_FILE="/home/${USER}/.bashrc"
+
+# If command line arguments are provided, execute them as the user in a new shell
+if [ $# -gt 0 ]; then
+  exec sudo --user="${USER}" env "PATH=${PATH}" "VIRTUAL_ENV=${VIRTUAL_ENV}" "CONTAINER=true" "BITBUCKET_URL=${BITBUCKET_URL}" /bin/bash --rcfile "${BASH_RC_FILE}" -c "$*"
+else
+  # Otherwise, start a new shell as the user
+  exec sudo --user="${USER}" env "PATH=${PATH}" "VIRTUAL_ENV=${VIRTUAL_ENV}" "CONTAINER=true" "BITBUCKET_URL=${BITBUCKET_URL}" /bin/bash --rcfile "${BASH_RC_FILE}"
+fi

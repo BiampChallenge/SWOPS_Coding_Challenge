@@ -1,0 +1,114 @@
+FROM debian:buster as base
+
+# This code executes a series of commands using apt-get to update the package lists and install numerous packages, including 'bash,' 'locales,''screen,' and 'ncurses-dev'. It changes the environment variable 'DEBIAN_FRONTEND' to 'noninteractive' to prevent any prompts throughout the installation process.
+
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    bash \
+    locales \
+    locales-all \
+    screen \
+    ncurses-dev
+
+#This commands will update the package listed using apt-get update and installs the packages with the -y flag, which automatically confirms installation. The DEBIAN_FRONTEND=noninteractive flag ensures that the installation process is non-interactive.
+
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    git-core \
+	diffstat \
+	unzip \
+	texinfo \
+	gcc-multilib \
+    build-essential \
+	chrpath \
+	socat \
+	cpio \
+	python3 \
+	python3-pip \
+	python3-pexpect \
+    xz-utils \
+	debianutils \
+	iputils-ping \
+	python3-git \
+	python3-jinja2 \
+	libegl1-mesa \
+	libsdl1.2-dev \
+    pylint3 \
+	xterm \
+	python3-wget \
+	nodejs \
+	lz4 \
+	zstd
+
+# This code runs a series of commands to update the package repository and install three packages: `gawk`, `wget`, and `rsync`.
+  -y flag, which automatically confirms installation.
+
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    gawk \
+	wget \
+	rsync
+
+# This code is a Dockerfile command that updates the package index and installs `yapf`, `vim`, and `jq` packages using the `apt-get` package manager in a non-interactive mode, -y flag, which automatically confirms installation.
+
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    yapf \
+	vim \
+	jq
+
+# These commands changes the system locale settings to use UTF-8 character encoding. It first changes the system locales, then produces the en_US.UTF-8 locale and sets it as the system's default locale. Finally, it sets three environment variables to guarantee that the locale is set as the container's default.
+
+RUN DEBIAN_FRONTEND=noninteractive update-locale 
+RUN DEBIAN_FRONTEND=noninteractive update-locale "LANG=en_US.UTF-8"
+RUN DEBIAN_FRONTEND=noninteractive locale-gen --purge "en_US.UTF-8"
+RUN DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales
+ENV LC_ALL=en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US.UTF-8
+
+# By creating a symbolic link from /bin/sh to /bin/bash, this command ensures that the bash shell is used instead of the default sh shell for any command that relies on /bin/sh, ensuring a more consistent shell environment.
+
+RUN ln -sf /bin/bash /bin/sh
+
+# This code generates a new image called "base-dev" from an existing image called "base". The new image inherits all of the data and settings from the original image, but it may additionally include development-specific features or customizations. 
+The "as" keyword is used to give the newly produced picture a name.
+
+FROM base as base-dev
+
+# This code will update packages Install the "sudo" package on a Linux system. The "sudo" package allows users to run programs with the security privileges of another user, can be used to perform administrative tasks. The "DEBIAN_FRONTEND=noninteractive" flag is used to prevent interactive prompts during package installation. -y flag is an automated installation process.
+
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y sudo
+
+#This code creates a file named "debian_chroot" inside the "/etc" directory in the container, and writes the text "base-dev" into it. This file is used by some tools and scripts to determine whether the container is running in a chroot environment.
+RUN echo 'base-dev' > /etc/debian_chroot
+
+#The `RUN groupadd yocto` command creates a new group named "yocto" within the Docker container. The `groupadd` command is used to create a new group on the system. This command is typically used during the setup of a new user account, as users can be added to groups to grant them certain permissions and access rights.
+
+RUN groupadd yocto
+
+# This code copies the file `start.sh` to the `/opt` directory within the container, and sets it as the entrypoint command to be executed when the container starts. This means that when the container starts, it will execute the `start.sh` script located in the `/opt` directory.
+COPY start.sh /opt
+ENTRYPOINT ["/opt/start.sh"]
+
+#This code is creating a new Docker image called "base-jenkins" from the image "base" as its base image. The new image will inherit all the files and configurations from the "base" image and some configurations could be added to it.
+
+FROM base as base-jenkins
+
+# The purpose of these arguments is to set the user ID and group ID of the jenkins user that will be created later in the Dockerfile.
+ARG userid
+ARG groupid
+
+# The code creates a new group with a specified group ID, and then creates a new user account with a specified user ID and adds the user to the previously created group. The user's home directory is set to /home/jenkins.
+
+RUN groupadd -g $groupid jenkins
+RUN useradd -m -d /home/jenkins -u $userid -g $groupid jenkins
+
+# These three commands create directories named "download", "sstate", and "global/sstate" under "/var/cache/yocto/". These directories are typically used to store downloaded files and cached build artifacts during a Yocto Project build.
+
+RUN mkdir -p /var/cache/yocto/download/
+RUN mkdir -p /var/cache/yocto/sstate/
+RUN mkdir -p /var/cache/yocto/global/sstate/
+
+# The `USER` command sets the user that runs subsequent commands in the Dockerfile. In this case, the user is set to `jenkins`.
+
+USER jenkins
+
+# This command creates a "volume" in a Docker container at the location `/home/jenkins/.ssh`. A volume is a way to persist data between container instances, allowing you to share files between the host machine and the container or between different containers. In this case, the volume is likely being used to store the SSH keys required for the container to authenticate with other systems.
+VOLUME /home/jenkins/.ssh
