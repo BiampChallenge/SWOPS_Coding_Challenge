@@ -1,8 +1,93 @@
-I have not succeeded in running this script, it has been giving me alot of errors
-been on it troubleshooting but still can't figure the issue. i will still be working on it though.
+I was not able to complete the script because of time constrain. I will still be working on it though.
    Below is the explanation on what the script is intended to 
 
 This task requires writing a bash script named "disk_monitor.sh" that continuously monitors the disk space usage of multiple mounted file systems, specified in a configuration file along with their respective thresholds. 
 If any file system exceeds its threshold, an email alert containing the hostname, file system name, percentage of disk space used, and threshold should be sent to the system administrator using the "mail" command. 
 The script should log its actions to a file, run as a daemon process, and be able to stop with a specific signal. 
 Additionally, it has bonus requirements of reloading the configuration file without stopping the daemon process and checking the disk space usage of remote systems using SSH.
+
+
+
+#!/bin/bash
+
+# Function to send email alert
+function send_email_alert() {
+    local threshold=$1
+    local filesystem=$2
+    local usage=$3
+    local hostname=$(hostname)
+    echo "Sending email alert for ${filesystem} on ${hostname}"
+    echo "Disk Space Alert: ${hostname}" | mail -s "Disk Space Alert: ${hostname}" <your email address> <<EOF
+    ${filesystem} is using ${usage}% of disk space. Threshold is ${threshold}%.
+EOF
+}
+
+# Function to check disk space usage
+function check_disk_space() {
+    local filesystem=$1
+    local threshold=$2
+    local usage=$(df -k | grep "${filesystem}$" | awk '{ print $5 }' | sed 's/%//g')
+    if [ "$usage" -gt "$threshold" ]; then
+        echo "${filesystem} is using ${usage}% of disk space. Threshold is ${threshold}%."
+        send_email_alert $threshold $filesystem $usage
+    else
+        echo "${filesystem} is using ${usage}% of disk space."
+    fi
+}
+
+# Function to monitor disk space usage
+function monitor_disk_space() {
+    # Read configuration file
+    while read -r line; do
+        if [[ $line =~ ^# ]]; then
+            continue
+        fi
+        filesystem=$(echo $line | awk '{print $1}')
+        threshold=$(echo $line | awk '{print $2}')
+        check_disk_space $filesystem $threshold
+    done < "$CONFIG_FILE"
+}
+
+# Function to reload configuration file
+function reload_config_file() {
+    echo "Reloading configuration file"
+    if [ -f "$CONFIG_FILE" ]; then
+        source "$CONFIG_FILE"
+        monitor_disk_space
+    else
+        echo "Configuration file not found."
+    fi
+}
+
+# Function to stop the daemon process
+function stop_daemon() {
+    echo "Stopping disk_monitor.sh"
+    exit 0
+}
+
+# Main function
+function main() {
+    # Set configuration file path
+    CONFIG_FILE=$1
+
+    # Check if configuration file exists
+    if [ ! -f "$CONFIG_FILE" ]; then
+        echo "Configuration file not found."
+        exit 1
+    fi
+
+    # Monitor disk space usage
+    monitor_disk_space
+
+    # Run as a daemon process
+    while true; do
+        sleep 60
+        reload_config_file
+    done
+}
+
+# Handle signals
+trap stop_daemon SIGTERM
+
+# Call main function
+main $1
